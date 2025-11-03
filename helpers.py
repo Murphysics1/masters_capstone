@@ -59,5 +59,46 @@ def trend_stationary(df,col,alpha=0.05):
     
     print(f'the p-value of this series is {res[1]:.2f} {phrase}\n{extent}')
 
+def time_series_decomposition(df, period = 30, plot_title = None, plot_y = None):
 
+    decomp = seasonal_decompose(df,period=period)
+
+    decomp_df = pd.DataFrame({
+    'observed': decomp.observed,
+    'trend': decomp.trend,
+    'seasonal': decomp.seasonal,
+    'residual': decomp.resid
+     })
+    
+    if plot_title != None:
+        title = plot_title
+    else:
+        title = "Seasonal Decomposition"
+
+    if plot_y != None:
+        y_label = plot_y
+    else:
+        y_label = "Quantity"
+
+    fig, axes = plt.subplots(4,1, figsize=(10,10),sharex=True)
+    fig.suptitle(title)
+
+    line = 0.5
+
+    decomp.observed.plot(ax=axes[0], linewidth = line)
+    decomp.trend.plot(ax=axes[1],linewidth = line)
+    decomp.seasonal.plot(ax=axes[2],linewidth = line)
+    decomp.resid.plot(ax=axes[3],linewidth = line)
+
+    for i in range(4):
+        axes[i].set_ylabel(y_label)
+        axes[i].set_xlabel('Date')
+
+    axes[0].set_title("Observed")
+    axes[1].set_title("Trend")
+    axes[2].set_title("Seasonality")
+    axes[3].set_title("Residuals")
+
+    plt.tight_layout()
+    plt.show()
     
