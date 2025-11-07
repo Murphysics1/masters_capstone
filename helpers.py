@@ -101,4 +101,7 @@ def time_series_decomposition(df, period = 30, plot_title = None, plot_y = None)
 
     plt.tight_layout()
     plt.show()
+
+    return decomp
+    
     
