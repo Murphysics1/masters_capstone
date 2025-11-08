@@ -7,15 +7,6 @@ from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from scipy import signal
 
 
-def time_lag(df, lagged_qty, steps = 1, season = None):
-
-    for step in range(steps):
-        df[f't-{step+1}'] = df[lagged_qty].shift(step+1)
-    
-    if season != None:
-
-        df[f'S({season})'] = df[lagged_qty].shift(season)
-    
 
 
 def spectrum(val, name = None, figsize = (10,4)):
