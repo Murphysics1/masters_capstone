@@ -17,24 +17,6 @@ def time_lag(df, lagged_qty, steps = 1, season = None):
 
         df[f'S({season})'] = df[lagged_qty].shift(season)
 
-def spectrum(val, name = None, figsize = (10,4)):
-    f, Pxx = signal.periodogram(val)
-
-    fig, ax = plt.subplots(figsize=figsize)
-
-    if name == None:
-        title = 'Spectrum Analysis'
-    else:
-        title = f'Spectrum Analysis of {name}'
-
-    ax.semilogy(f,Pxx)
-    ax.set(
-        title = title,
-        xlabel = 'Frequency',
-        ylabel = 'Power Spectrum Density')
-    #ax.set_ylim([1e-4,1e1])
-    plt.show()
-
 
 def trend_stationary(df,col,alpha=0.05):
 
@@ -100,19 +82,17 @@ def time_series_decomposition(df, period = 30, plot_title = None, plot_y = None)
 
     plt.tight_layout()
     plt.show()
-
-    return decomp
     
-def model_test_no_space(df,steps=1,split_date = '2023-05-31'):
+def model_test_no_space(df,target,steps=1,split_date = '2023-05-31'):
     df_model_dev = df.copy()
-    time_lag(df_model_dev,'Difference',steps=steps)
+    time_lag(df_model_dev,target,steps=steps)
 
     df_model_dev = df_model_dev.dropna().reset_index(drop=True)
 
     df_train = df_model_dev[df_model_dev['Date'] <= split_date]
     df_test = df_model_dev[df_model_dev['Date'] > split_date]
 
-    target = df_train['Difference']
+    target = df_train[target]
     features = df_train.filter(like='t-',axis=1)
 
     features = sm.add_constant(features)
@@ -120,3 +100,46 @@ def model_test_no_space(df,steps=1,split_date = '2023-05-31'):
     mlr_model = sm.OLS(target,features).fit()
     
     return (mlr_model, mlr_model.summary())
+
+def acf_pacf(series, title = 'Autocorrelations'):
+    fig, (ax1, ax2) = plt.subplots(2,1, figsize=(10,8),sharex=True)
+    fig.suptitle(title)
+    # Make ACF plot
+    plot_acf(series.dropna(), lags=10, zero=False, ax=ax1)
+    # Make PACF plot
+    plot_pacf(series.dropna(), lags=10, zero=False, ax=ax2)
+
+    ax2.set_xlabel('Lags')
+    plt.tight_layout()
+    plt.show()
+
+def mean_std_view(df,quantity,title="Stationarity of Data",window = 30):
+    df_stat= df.copy()
+
+    df_stat['rolling mean'] = df[quantity].rolling(window=window).mean()
+    df_stat['overall_mean'] = df[quantity].mean()
+
+    df_stat['rolling std'] = df[quantity].rolling(window=window).std()
+    df_stat['overall_std'] = df[quantity].std()
+
+    tb_blue = '#1f77b4'
+    tb_orange = '#ff7f0e'
+
+    fig, axes= plt.subplots(2,1, figsize=(10, 8),sharex=True)
+
+    sns.lineplot(data=df_stat, x='Date',y=quantity,errorbar=None, ax=axes[0])
+    sns.lineplot(df_stat,x='Date', y='rolling mean',errorbar=None,ax=axes[1],color=tb_blue)
+    sns.lineplot(df_stat,x='Date', y='rolling std',errorbar=None,ax=axes[1],color=tb_orange)
+    sns.lineplot(df_stat,x='Date',y='overall_mean',errorbar=None,ax=axes[1],linestyle = ':',color=tb_blue)
+    sns.lineplot(df_stat,x='Date',y='overall_std',errorbar=None,ax=axes[1],linestyle = ':',color= tb_orange)
+                
+    axes[0].set(title = title,
+        xlabel = 'Date',
+        ylabel='Difference')
+
+    axes[1].set(title = 'Rolling 30 Day Mean and Standard Deviation',
+        xlabel = 'Date',
+        ylabel='Variation')
+    axes[1].legend(loc="upper left", labels=[ "Rolling Mean", "Rolling Std Dev"])
+
+    sns.move_legend(axes[1], "upper left", bbox_to_anchor=(1, 1))
