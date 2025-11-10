@@ -3,11 +3,19 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.stattools import adfuller
+import statsmodels.api as sm
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from scipy import signal
 
 
+def time_lag(df, lagged_qty, steps = 1, season = None):
 
+    for step in range(steps):
+        df[f't-{step+1}'] = df[lagged_qty].shift(step+1)
+    
+    if season != None:
+
+        df[f'S({season})'] = df[lagged_qty].shift(season)
 
 def spectrum(val, name = None, figsize = (10,4)):
     f, Pxx = signal.periodogram(val)
@@ -95,4 +103,20 @@ def time_series_decomposition(df, period = 30, plot_title = None, plot_y = None)
 
     return decomp
     
+def model_test_no_space(df,steps=1,split_date = '2023-05-31'):
+    df_model_dev = df.copy()
+    time_lag(df_model_dev,'Difference',steps=steps)
+
+    df_model_dev = df_model_dev.dropna().reset_index(drop=True)
+
+    df_train = df_model_dev[df_model_dev['Date'] <= split_date]
+    df_test = df_model_dev[df_model_dev['Date'] > split_date]
+
+    target = df_train['Difference']
+    features = df_train.filter(like='t-',axis=1)
+
+    features = sm.add_constant(features)
+
+    mlr_model = sm.OLS(target,features).fit()
     
+    return (mlr_model, mlr_model.summary())
