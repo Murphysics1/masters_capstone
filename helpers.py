@@ -81,6 +81,10 @@ def time_series_decomposition(df, period = 30, plot_title = None, plot_y = None)
     axes[3].set_title("Residuals")
 
     plt.tight_layout()
+    if plot_title != None:
+        plt.savefig(f'Images/{title}.png')
+    
+    
     plt.show()
     
 def model_test_no_space(df,target,steps=1,split_date = '2023-05-31'):
@@ -111,6 +115,8 @@ def acf_pacf(series, title = 'Autocorrelations'):
 
     ax2.set_xlabel('Lags')
     plt.tight_layout()
+    if title != "Autocorrelations":
+        plt.savefig(f'Images/{title}.png')
     plt.show()
 
 def mean_std_view(df,quantity,title="Stationarity of Data",window = 30):
@@ -143,3 +149,7 @@ def mean_std_view(df,quantity,title="Stationarity of Data",window = 30):
     axes[1].legend(loc="upper left", labels=[ "Rolling Mean", "Rolling Std Dev"])
 
     sns.move_legend(axes[1], "upper left", bbox_to_anchor=(1, 1))
+    plt.tight_layout()
+    
+    if title != "Stationarity of Data":
+        plt.savefig(f'Images/{title}.png')
