@@ -6,6 +6,9 @@ from statsmodels.tsa.stattools import adfuller
 import statsmodels.api as sm
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from scipy import signal
+from scipy.stats import boxcox
+from scipy.special import inv_boxcox
+from sklearn.preprocessing import StandardScaler
 
 
 def time_lag(df, lagged_qty, steps = 1, season = None):
@@ -153,3 +156,69 @@ def mean_std_view(df,quantity,title="Stationarity of Data",window = 30):
     
     if title != "Stationarity of Data":
         plt.savefig(f'Images/{title}.png')
+
+#FINAL FORECASTING MODEL
+
+def forecast_demand(df, begin, end, idx = 1):
+    
+    df_model = df.copy()
+
+    #Instantiate a scaler
+    scaler = StandardScaler()
+
+    #Prepare data
+    df_model['BC_Transform'], lam = boxcox(df_model['Quantity'])
+    df_model['Scaled'] = scaler.fit_transform(df_model[['BC_Transform']])
+    df_model['Difference'] = df_model['Scaled'].diff()
+
+    #Generate Time Lagged differences and drop rows with missing values
+    time_lag(df_model, 'Difference', steps=idx)
+    df_model = df_model.dropna()
+
+    #Select Target
+    target = df_model['Difference']
+
+    #Select Features based on idx
+    f = [f't-{i}' for i in range(1, idx + 1)]
+    features = df_model[f]
+    features = sm.add_constant(features)
+
+    #-----#
+    model = sm.OLS(target,features).fit()
+    #-----#
+
+    #Initiate Dates and last set of lag values
+    test_dates = pd.date_range(begin, end,freq = 'D')
+
+    latest_lags = list(df_model.iloc[-1][f])
+
+    forecast_diffs = []
+
+    #iterate and forecast the next steps
+    for _ in range(len(test_dates)):
+        X = pd.DataFrame([latest_lags], columns=f)
+        X= sm.add_constant(X, has_constant='add')
+        
+        y_pred = model.predict(X)[0]
+        forecast_diffs.append(y_pred)
+        
+        # Update lag list for next day (push new prediction, drop oldest)
+        latest_lags = [y_pred] + latest_lags[:-1]
+
+    #grab the last transformed scaled value
+    last_value = df_model['Scaled'][max(df_model.index)]
+
+    df_forecast = pd.DataFrame({
+        'Date': test_dates,
+        'Predicted_Difference': forecast_diffs
+    })
+
+    #Start the rollup
+
+    df_forecast['Re-Summed'] = df_forecast['Predicted_Difference'].cumsum() + last_value
+    df_forecast['Unscaled'] = scaler.inverse_transform(df_forecast[['Re-Summed']])
+    df_forecast['Predicted Quantity'] = inv_boxcox(df_forecast['Unscaled'],lam)
+
+    df_forecast = df_forecast[['Date','Predicted Quantity']]
+
+    return df_forecast
