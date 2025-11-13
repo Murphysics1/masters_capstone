@@ -119,7 +119,7 @@ def acf_pacf(series, title = 'Autocorrelations'):
     ax2.set_xlabel('Lags')
     plt.tight_layout()
     if title != "Autocorrelations":
-        plt.savefig(f'Images/{title}.png')
+        plt.savefig(f'Images/ACF_PACF/{title}.png')
     plt.show()
 
 def mean_std_view(df,quantity,title="Stationarity of Data",window = 30):
@@ -155,7 +155,7 @@ def mean_std_view(df,quantity,title="Stationarity of Data",window = 30):
     plt.tight_layout()
     
     if title != "Stationarity of Data":
-        plt.savefig(f'Images/{title}.png')
+        plt.savefig(f'Images/Stationarity/{title}.png')
 
 #FINAL FORECASTING MODEL
 
