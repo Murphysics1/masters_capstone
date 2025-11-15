@@ -2,6 +2,7 @@
 #Import Libraries
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.stattools import adfuller
@@ -165,7 +166,7 @@ def mean_std_view(df,quantity,title="Stationarity of Data",window = 30):
 
 #FINAL FORECASTING MODEL
 
-def forecast_demand(df, begin, end, idx = 1):
+def forecast_demand(df, begin, end, idx = 1,style = 'bc'):
     
     df_model = df.copy()
 
@@ -173,7 +174,12 @@ def forecast_demand(df, begin, end, idx = 1):
     scaler = StandardScaler()
 
     #Prepare data
-    df_model['BC_Transform'], lam = boxcox(df_model['Quantity'])
+    if style == 'bc':
+        df_model['BC_Transform'], lam = boxcox(df_model['Quantity'])
+    elif style == 'log':
+        df_model['BC_Transform']= np.log(df_model['Quantity'])
+    else:
+        df_model['BC_Transform'] = df_model['Quantity']
     df_model['Scaled'] = scaler.fit_transform(df_model[['BC_Transform']])
     df_model['Difference'] = df_model['Scaled'].diff()
 
@@ -223,7 +229,13 @@ def forecast_demand(df, begin, end, idx = 1):
 
     df_forecast['Re-Summed'] = df_forecast['Predicted_Difference'].cumsum() + last_value
     df_forecast['Unscaled'] = scaler.inverse_transform(df_forecast[['Re-Summed']])
-    df_forecast['Predicted Quantity'] = inv_boxcox(df_forecast['Unscaled'],lam)
+
+    if style == 'bc':
+        df_forecast['Predicted Quantity'] = inv_boxcox(df_forecast['Unscaled'],lam)
+    elif style == 'log':
+        df_forecast['Predicted Quantity'] = np.exp(df_forecast['Unscaled'])
+    else:
+        df_forecast['Predicted Quantity'] = df_forecast['Unscaled']
 
     df_forecast = df_forecast[['Date','Predicted Quantity']]
 
